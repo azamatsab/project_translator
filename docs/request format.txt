@@ -1,0 +1,25 @@
+{
+	"source_lang": <язык переводимого текста>, 
+	"target_lang": <язык, на который нужно перевести>
+	"text": <some text>
+}
+
+
+
+{
+	"source_lang": "EN",
+	"target_lang": "RU",
+	"text": "hello world!"
+}
+
+{
+	"source_lang": "EN",
+	"target_lang": "RU",
+	"text": ""
+}
+
+{
+	"source_lang": "EN",
+	"target_lang": "RU",
+	"text": <очень большой текст>
+}

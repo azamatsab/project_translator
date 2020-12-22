@@ -1,0 +1,49 @@
+{
+	"code": <http-code>,
+	"status": <status перевода>,
+	"translated_text": <переведенный текст>,
+	"comment": ""
+}
+
+{
+	"code": 200,
+	"status": success,
+	"translated_text": <переведенный текст>,
+	"comment": ""
+}
+
+
+request 
+
+{
+	"source_lang": "ENG",
+	"target_lang": "RU",
+	"text": ""
+}
+
+Response
+
+{
+	"code": 406,
+	"status": error,
+	"translated_text": "",
+	"comment": получен не поддерживаемый язык ENG
+}
+
+
+request 
+
+{
+	"source_lang": "EN",
+	"target_lang": "RUS",
+	"text": ""
+}
+
+Response
+
+{
+	"code": 406,
+	"status": error,
+	"translated_text": "",
+	"comment": получен не поддерживаемый язык RUS
+}
