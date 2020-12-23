@@ -2,48 +2,9 @@
 """
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
-DEFAULT_PRETRAINED_MODEL_FILEPATH = "opus-mt-en-ru"
+DEFAULT_PRETRAINED_HFACE_MODEL_FILEPATH = "opus-mt-en-ru"
 DEFAULT_HF_NAME_MODEL_FILEPATH = "Helsinki-NLP/opus-mt-en-ru"
-
-class BaseModel(object):
-
-    """Base class, to be subclassed by predictors for specific type of data."""
-
-    def __init__(self):
-        self.name = f'{self.__class__.__name__}'
-        # self.name = f'{self.__class__.__name__}_{dataset_cls.__name__}_{network_fn.__name__}'
-
-    @property
-    def weights_filename(self) -> str:
-        DIRNAME.mkdir(parents=True, exist_ok=True)
-        return str(DIRNAME / f'{self.name}_weights.h5')
-
-
-    def fit(self, dataset, batch_size: int = 32, epochs: int = 10, augment_val: bool = True, callbacks: list = None):
-    	pass  
-
-    def evaluate(self, x, y, batch_size=16, verbose=False):  # pylint: disable=unused-argument
-     	pass
-
-
-    def loss(self):  # pylint: disable=no-self-use
-	    pass
-
-
-    def optimizer(self):  # pylint: disable=no-self-use
-    	pass
-
-
-    def metrics(self):  # pylint: disable=no-self-use
-        pass
-
-
-    def load_weights(self):
-        self.network.load_weights(self.weights_filename)
-
-
-    def save_weights(self):
-        self.network.save_weights(self.weights_filename)
+DEFAULT_PRETRAINED_USER_MODEL_FILEPATH = "./store-pretrained"
 
 
 
@@ -73,10 +34,10 @@ class OPUSModel(BaseModel):
         return self.tokenizer.decode(output[0])
 
     def fit(self, dataset, batch_size: int = 32, epochs: int = 10, augment_val: bool = True, callbacks: list = None):
-    	pass  
+        pass  
 
     def evaluate(self, x, y, batch_size=16, verbose=False):  # pylint: disable=unused-argument
-     	pass
+         pass
 
 
     def loss(self, input_text: str, target_text: str) -> float:  # pylint: disable=no-self-use
@@ -87,16 +48,20 @@ class OPUSModel(BaseModel):
 
 
     def optimizer(self):  # pylint: disable=no-self-use
-    	pass
+        pass
 
 
     def metrics(self):  # pylint: disable=no-self-use
         pass
 
+    def save_model(self, filepath: str):
+        """ Save the trained model
+        """
+        self.tokenizer.save_pretrained(filepath)
+        self.model.save_pretrained(filepath)
 
-    def load_weights(self):
-        self.network.load_weights(self.weights_filename)
-
-
-    def save_weights(self):
-        self.network.save_weights(self.weights_filename)
+    def load_model(self, filepath: str):
+        """ Load the trained model
+        """
+        self.tokenizer.from_pretrained(filepath)
+        self.model.from_pretrained(filepath)
