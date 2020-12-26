@@ -1,0 +1,6 @@
+pytorch
+sentencepiece
+sacrebleu
+rouge-score
+pytest
+pylint
