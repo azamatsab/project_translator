@@ -23,11 +23,12 @@ DEFAULT_CONFIG_FILEPATH = "translator.conf.yml"
 DEFAULT_LOGGING_CONFIG_FILEPATH = "logging.conf.yml"
 MAX_LENGTH = 250
 
-with open(DEFAULT_CONFIG_FILEPATH, "r") as fin:
-    cfg = yaml.safe_load(fin)
+# with open(DEFAULT_CONFIG_FILEPATH, "r") as fin:
+#     cfg = yaml.safe_load(fin)
 
 # logger = logging.getLogger()
-logger = logging.getLogger(APPLICATION_NAME)  # for current example
+# logger = logging.getLogger(APPLICATION_NAME)  # for current example
+logger = logging.getLogger(__name__)
 
 # setup_logging()
 
@@ -41,11 +42,14 @@ class OPUSModel(BaseModel):
     def __init__(self, tokenizer_filepath: str):
         # self.name = f'{self.__class__.__name__}_{tokenizer_filepath}'
         # self.name = f'{self.__class__.__name__}_{dataset_cls.__name__}_{network_fn.__name__}'
+        logger.info("Initialize %s class with pretrained model %s", self.__class__.__name__, tokenizer_filepath)
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_filepath)
         self.model = AutoModelForSeq2SeqLM.from_pretrained(tokenizer_filepath)
 
+
     def predict(self, text: str) -> str:
         if len(text) > MAX_LENGTH:
+            logger.debug("Try to translate too long sentence")
             return dedent(f"""Your text has length {len(text)} > {MAX_LENGTH}.
             Please, reduce text for translator""")
         ids = self.tokenizer(text, return_tensors='pt').input_ids
@@ -63,6 +67,7 @@ class OPUSModel(BaseModel):
         input_ids = self.tokenizer(input_text, return_tensors='pt').input_ids
         target_ids = self.tokenizer(target_text, return_tensors='pt').input_ids
         loss = self.model(input_ids=input_ids, labels=target_ids).loss
+        logger.debug('for request "%s" get loss %g', input_text, loss)
         return loss
 
 
@@ -76,12 +81,15 @@ class OPUSModel(BaseModel):
     def save_model(self, filepath: str):
         """ Save the trained model
         """
+        logger.info('Store the model to path: "%s"', filepath)
         self.tokenizer.save_pretrained(filepath)
         self.model.save_pretrained(filepath)
+        
 
     def load_model(self, filepath: str):
         """ Load the trained model
         """
+        logger.info('Load the model for path: "%s"', filepath)
         self.tokenizer.from_pretrained(filepath)
         self.model.from_pretrained(filepath)
 

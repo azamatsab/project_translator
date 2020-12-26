@@ -17,40 +17,60 @@ from translator.predictor import Predictor, CommonPredictor
 from translator.translator import OPUSModel
 
 DEFAULT_DB_FILEPATH = './data/stored-opus-mt-en-ru'
+INPUT_TEXT = "I love to listen music."
 
-
-@pytest.mark.slow
-def test_opus_can_load_stored_model(tmpdir):
-    print("Cur Dir ", os.path.dirname(__file__))
+@pytest.fixture(scope='session')
+def translator_instance():
     model_filepath = os.sep.join([os.path.dirname(__file__), DEFAULT_DB_FILEPATH])
-    print(f"Absolute path to model : {model_filepath}")
     model = OPUSModel(model_filepath)
-    assert model.model.num_parameters() > 1000000 ,(
+    return model
+
+@pytest.fixture(scope='session')
+def predictor_instance():
+    model_filepath = os.sep.join([os.path.dirname(__file__), DEFAULT_DB_FILEPATH])
+    model = CommonPredictor(OPUSModel, model_filepath)
+    return model
+
+# @pytest.mark.skip
+def test_tranlator_can_load_stored_model(translator_instance):
+    assert translator_instance.model.num_parameters() > 1000000 ,(
         "Model has no parameters, check the storage"
     )
-    assert 62518 == model.tokenizer.vocab_size, (
+
+# @pytest.mark.skip
+def test_tranlator_check_vocab_len(translator_instance):
+    assert 62518 == translator_instance.tokenizer.vocab_size, (
         f"Vocabulary size does not compare with 62518, it equals {model.tokenizer.vocab_size}"
     )
-    assert model.tokenizer("This is the pen.").input_ids == [268, 34, 4, 13155, 3, 0]
-    assert 62518 == model.tokenizer.vocab_size
-    assert 'Это моя ручка' in model.predict("This is my pen")
-    # check the long text
-    # assert ""
 
-@pytest.mark.slow
-def test_predictor_can_load_stored_model(tmpdir):
-    # print("Cur Dir ", os.path.dirname(__file__))
-    model_filepath = os.sep.join([os.path.dirname(__file__), DEFAULT_DB_FILEPATH])
-    # print(f"Absolute path to model : {model_filepath}")
-    # model = OPUSModel(model_filepath)
-    predictor = CommonPredictor(OPUSModel, model_filepath)
+# @pytest.mark.skip
+def test_tranlator_check_tokenizer(translator_instance):
+    assert translator_instance.tokenizer("This is the pen.").input_ids == [268, 34, 4, 13155, 3, 0]
+
+# @pytest.mark.skip
+def test_tranlator_check_predict(translator_instance):
+    assert 'Это моя ручка' in translator_instance.predict("This is my pen")
+
+# @pytest.mark.skip
+def test_translator_check_input_len(translator_instance):
+    assert 'reduce text for' in translator_instance.predict(INPUT_TEXT * 100)
+
+def test_translator_can_save_and_load_model(caplog, tmpdir, translator_instance):
+    translator_instance.save_model(tmpdir)
+    pred = CommonPredictor(OPUSModel, tmpdir)
+    target_text = '<pad> Я люблю слушать музыку.'
+    predicted_text = pred.predict(INPUT_TEXT)
+    assert predicted_text == target_text
+
+# @pytest.mark.skip
+def test_predictor_can_load_stored_model(predictor_instance):
     input_text = "I love to listen music."
     target_text = '<pad> Я люблю слушать музыку.'
-    predicted_text = predictor.predict(input_text)
+    predicted_text = predictor_instance.predict(input_text)
     assert predicted_text == target_text
-    #
-    # check the lenght error
-    assert 'reduce text for' in predictor.predict(input_text * 100)
+
+def test_predictor_check_input_len(predictor_instance):
+    assert 'reduce text for' in predictor_instance.predict(INPUT_TEXT * 100)
 
 
 @pytest.mark.slow
