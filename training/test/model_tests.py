@@ -47,7 +47,8 @@ def test_fit(get_model):
     net = get_model
     with open(CONFIG_PATH, "r") as ymlfile:
         cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
-    cfg["net"]["epoch"] = 1
+    cfg["net"]["epoch"] = 10
+    cfg["net"]["batch_size"] = 2
     model = BaseModel(net, MODEL_NAME, cfg)
 
     val = OpusDataset(os.path.join(DATASET_PATH, TEST_FILE_EN), 

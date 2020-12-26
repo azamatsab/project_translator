@@ -32,7 +32,7 @@ conf_to_scheduler = {
 
 
 class BaseModel:
-    def __init__(self, model, tokenizer_name, config):
+    def __init__(self, model, tokenizer_name, config, experiments_path="./"):
         self.name = f'{self.__class__.__name__}_{tokenizer_name}'
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
         self.model = model
@@ -40,6 +40,7 @@ class BaseModel:
         self.model.to(self.device)
         self.config = config
         self.optimizer = None
+        self.experiments_path = experiments_path
 
     @property
     def weights_filename(self) -> str:
@@ -59,6 +60,8 @@ class BaseModel:
         return scheduler
 
     def fit(self, dataset):
+        experiment_id = mlflow.set_experiment(self.name)
+
         num_workers = self.config["loader"]["num_workers"]
         batch_size = self.config["net"]["batch_size"]
         epochs = self.config["net"]["epoch"]
@@ -76,15 +79,36 @@ class BaseModel:
         train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, 
                           num_workers=num_workers, pin_memory=True, drop_last=True)
 
-        for epoch in range(epochs):
-            for batch in train_loader:
-                src_str = [item[0] for item in batch]
-                target_str = [item[1] for item in batch]
-                inputs = self.tokenizer.prepare_seq2seq_batch(src_str, target_str, return_tensors="pt")  # "pt" for pytorch
-                out = self.model(**inputs)
-                self.optimizer.zero_grad()
-                loss = out.loss
-                loss.backward()
+        with mlflow.start_run(experiment_id=experiment_id):
+            mlflow.log_param("batch_size", batch_size)
+            mlflow.log_param("lr", lr)
+            mlflow.log_param("epochs", epochs)
+            mlflow.log_param("optimizer", self.config["net"]["optimizer"])
+            mlflow.log_param("scheduler", self.config["net"]["scheduler"])
+            mlflow.log_param("warmup_steps", self.config["net"]["warmup_steps"])
+            mlflow.log_param("num_cycles", self.config["net"]["num_cycles"])
+            
+            t_loss = 0
+            perplexity = 0
+            num_steps = 0
+            for epoch in range(epochs):
+                for batch in train_loader:
+                    src_str = [item[0] for item in batch]
+                    target_str = [item[1] for item in batch]
+                    inputs = self.tokenizer.prepare_seq2seq_batch(src_str, target_str, return_tensors="pt")  # "pt" for pytorch
+                    out = self.model(**inputs)
+                    self.optimizer.zero_grad()
+                    loss = out.loss
+                    loss.backward()
+                    t_loss += loss.item()
+                    perplexity += torch.exp(loss).item()
+                    num_steps += 1
+
+                t_loss /= num_steps
+                perplexity /= num_steps
+                mlflow.log_metric("train loss", t_loss, step=epoch)
+                mlflow.log_metric("train perplexity", perplexity, step=epoch)
+                
             self.scheduler.step()
 
     def evaluate():
