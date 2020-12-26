@@ -2,3 +2,5 @@ torch
 torchvision
 transformers
 sentencepiece
+sacrebleu
+mlflow

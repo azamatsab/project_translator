@@ -4,7 +4,7 @@ net:
     optimizer: AdamW
     device: cpu
     lr: 0.001
-
+    label_smoothing: 0
     # schedulers possible values are: 
       # "linear"
       # "cosine"

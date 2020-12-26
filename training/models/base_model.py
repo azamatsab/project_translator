@@ -1,4 +1,6 @@
 """Model class, to be extended by specific types of models."""
+import os
+import sys
 import yaml
 from pathlib import Path
 
@@ -17,6 +19,11 @@ from transformers.optimization import (
     get_linear_schedule_with_warmup,
     get_polynomial_decay_schedule_with_warmup,
 )
+
+sys.path.insert(0, os.path.abspath(Path(__file__).parents[2].resolve()))
+from training.models.utils import label_smoothed_nll_loss, calculate_bleu
+from transformers import MarianMTModel, MarianTokenizer
+from training.datasets.opus_dataset import OpusDataset
 
 
 DIRNAME = Path(__file__).parents[1].resolve() / 'weights'
@@ -59,7 +66,42 @@ class BaseModel:
             )
         return scheduler
 
-    def fit(self, dataset):
+    def run_one_epoch(self, loader, train=True):
+        t_loss = 0
+        perplexity = 0
+        num_steps = 0
+        bleu = 0
+        if train:
+            self.model.train()
+        else:
+            self.model.eval()
+
+        for batch in loader:
+            if train:
+                self.optimizer.zero_grad()
+            src_str = batch[0]
+            target_str = batch[1]
+            inputs = self.tokenizer.prepare_seq2seq_batch(src_str, target_str, return_tensors="pt")  # "pt" for pytorch
+            out = self.model(**inputs)
+            loss = out.loss
+            if train:
+                loss.backward()
+                self.optimizer.step()
+            if not train:
+                translated = self.model.generate(**self.tokenizer.prepare_seq2seq_batch(src_str, return_tensors="pt"))
+                tgt_text = [self.tokenizer.decode(t, skip_special_tokens=True) for t in translated]
+                bleu += calculate_bleu(tgt_text, target_str)["bleu"]
+            t_loss += loss.item()
+            perplexity += torch.exp(loss).item()
+            num_steps += 1
+
+        t_loss /= num_steps
+        perplexity /= num_steps
+        bleu /= num_steps
+        return t_loss, perplexity, bleu
+
+
+    def fit(self, train_dataset, val_dataset=None):
         experiment_id = mlflow.set_experiment(self.name)
 
         num_workers = self.config["loader"]["num_workers"]
@@ -76,8 +118,16 @@ class BaseModel:
 
         self.scheduler = self._get_lr_scheduler(self.config["net"]["epoch"])
 
-        train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, 
+        if self.config["net"]["label_smoothing"] == 0:
+            self.loss_fn = torch.nn.CrossEntropyLoss()
+        else:
+            self.loss_fn = label_smoothed_nll_loss
+
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, 
                           num_workers=num_workers, pin_memory=True, drop_last=True)
+        if val_dataset:
+            val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, 
+                          num_workers=num_workers, pin_memory=True, drop_last=False)
 
         with mlflow.start_run(experiment_id=experiment_id):
             mlflow.log_param("batch_size", batch_size)
@@ -88,28 +138,37 @@ class BaseModel:
             mlflow.log_param("warmup_steps", self.config["net"]["warmup_steps"])
             mlflow.log_param("num_cycles", self.config["net"]["num_cycles"])
             
-            t_loss = 0
-            perplexity = 0
-            num_steps = 0
             for epoch in range(epochs):
-                for batch in train_loader:
-                    src_str = [item[0] for item in batch]
-                    target_str = [item[1] for item in batch]
-                    inputs = self.tokenizer.prepare_seq2seq_batch(src_str, target_str, return_tensors="pt")  # "pt" for pytorch
-                    out = self.model(**inputs)
-                    self.optimizer.zero_grad()
-                    loss = out.loss
-                    loss.backward()
-                    t_loss += loss.item()
-                    perplexity += torch.exp(loss).item()
-                    num_steps += 1
-
-                t_loss /= num_steps
-                perplexity /= num_steps
+                t_loss, perplexity, _ = self.run_one_epoch(train_loader, train=True)                
                 mlflow.log_metric("train loss", t_loss, step=epoch)
                 mlflow.log_metric("train perplexity", perplexity, step=epoch)
+                print(f"train: Epoch: {epoch + 1}, loss: {round(t_loss, 4)}, perplexity: {round(perplexity)}")
+                if val_dataset:
+                    val_loss, val_perplexity, bleu = self.run_one_epoch(val_loader, train=False)
+                    mlflow.log_metric("val loss", val_loss, step=epoch)
+                    mlflow.log_metric("val perplexity", val_perplexity, step=epoch)    
+                    mlflow.log_metric("val bleu", bleu, step=epoch)    
+                    print(f"val: Epoch: {epoch + 1}, loss: {round(val_loss, 4)}, perplexity: {round(val_perplexity)}, bleu: {bleu}")
                 
             self.scheduler.step()
 
     def evaluate():
         pass
+
+
+if __name__ == "__main__":
+    MODEL_NAME = 'Helsinki-NLP/opus-mt-en-ru'
+    CONFIG_PATH = 'training/config.yaml'
+    DATASET_PATH = 'dataset'
+    TEST_FILE_EN = 'test_en'
+    TEST_FILE_RU = 'test_ru'
+    net = MarianMTModel.from_pretrained(MODEL_NAME)
+    with open(CONFIG_PATH, "r") as ymlfile:
+        cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
+    cfg["net"]["epoch"] = 10
+    cfg["net"]["batch_size"] = 2
+    model = BaseModel(net, MODEL_NAME, cfg)
+
+    val = OpusDataset(os.path.join(DATASET_PATH, TEST_FILE_EN), 
+                      os.path.join(DATASET_PATH, TEST_FILE_RU))
+    model.fit(val, val)

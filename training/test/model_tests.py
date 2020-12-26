@@ -8,6 +8,7 @@ from transformers import MarianMTModel, MarianTokenizer
 
 from training.models.base_model import BaseModel
 from training.datasets.opus_dataset import OpusDataset
+from training.models.utils import calculate_bleu
 
 MODEL_NAME = 'Helsinki-NLP/opus-mt-en-ru'
 CONFIG_PATH = 'training/config.yaml'
@@ -53,7 +54,7 @@ def test_fit(get_model):
 
     val = OpusDataset(os.path.join(DATASET_PATH, TEST_FILE_EN), 
                       os.path.join(DATASET_PATH, TEST_FILE_RU))
-    model.fit(val)
+    model.fit(val, val)
 
 def test_schedulers(get_model):
     types = ["linear",
@@ -74,3 +75,9 @@ def test_schedulers(get_model):
         model.config["net"]["scheduler"] = sch_type
         scheduler = model._get_lr_scheduler(10)
         scheduler.step()
+
+def test_bleu():
+    line1 = ["привет"]
+    line2 = ["привут"]
+    
+    assert calculate_bleu(line1, line2) != 0
