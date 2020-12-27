@@ -29,15 +29,15 @@ class OpusDataset(Dataset):
         """
         return len(self.source)
     
-    def __getitem__(self, idx: int) -> list:
+    def __getitem__(self, idx: int) -> dict:
         """ Return source and target languages sentences
         
         Parameters:
         - idx - index to get sentences
         
         Return:
-        - data - list of src and target sentences
+        - data - dict of {"source": source sentence, "target": target sentence}
         """
         src = self.source[idx]        
         target = self.target[idx]
-        return [src, target]
+        return {"source": src, "target": target}

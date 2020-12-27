@@ -53,17 +53,8 @@ class BaseModel:
         DIRNAME.mkdir(parents=True, exist_ok=True)
         return str(DIRNAME / f'{self.name}_{epoch}_{loss}_{bleu}_weights.pth')
 
-    def _get_lr_scheduler(self, num_training_steps):
-        schedule_func = conf_to_scheduler[self.config["net"]["scheduler"]]
-        if self.config["net"]["scheduler"] == "constant":
-            scheduler = schedule_func(self.optimizer)
-        elif self.config["net"]["scheduler"] == "constant_w_warmup":
-            scheduler = schedule_func(self.optimizer, num_warmup_steps=self.config["net"]["warmup_steps"])
-        else:
-            scheduler = schedule_func(
-                self.optimizer, num_warmup_steps=self.config["net"]["warmup_steps"], num_training_steps=num_training_steps
-            )
-        return scheduler
+    def _get_lr_scheduler(self):
+        return model.scheduler
     
     def iteration(self, loader, train=True, generate=False):
         t_loss = 0
@@ -73,8 +64,8 @@ class BaseModel:
         for batch in tqdm(loader):
             if train:
                 self.optimizer.zero_grad()
-            src_str = batch[0]
-            target_str = batch[1]
+            src_str = batch["source"]
+            target_str = batch["target"]
             inputs = self.tokenizer.prepare_seq2seq_batch(src_str, target_str, return_tensors="pt")  # "pt" for pytorch
             input_ids = torch.tensor(inputs.input_ids).to(self.device, dtype=torch.long)
             attention_mask = torch.tensor(inputs.attention_mask).to(self.device, dtype=torch.long)
