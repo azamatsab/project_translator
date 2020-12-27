@@ -10,12 +10,12 @@
 В самом простом варианте реализация переводчика занимает несколько строк:
 
 ```python
-from translator.predictor import CommonPredictor
-from translator.translator import OPUSModel, DEFAULT_PRETRAINED_USER_MODEL_FILEPATH
+from translator.src.predictor import CommonPredictor
+from translator.src.translator import OPUSModel
 
-predictor = CommonPredictor(OPUSModel, DEFAULT_PRETRAINED_USER_MODEL_FILEPATH)
+predictor = CommonPredictor(OPUSModel, './data/stored-opus-mt-en-ru')
 
-predicted_text = predictor.predict("My name is Nicklai and I live in Almetievsk.")
+predicted_text = predictor.predict("My name is Nikolai and I live in Almetievsk.")
 
 print(f"Translation: {predicted_text}")
 ```

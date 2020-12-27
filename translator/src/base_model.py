@@ -13,7 +13,7 @@ class BaseModel(object):
 
 
     def fit(self, dataset, batch_size: int = 32, epochs: int = 10, augment_val: bool = True, callbacks: list = None):
-        pass  
+        pass
 
     def evaluate(self, x, y, batch_size=16, verbose=False):  # pylint: disable=unused-argument
          pass
