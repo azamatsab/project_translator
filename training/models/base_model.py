@@ -202,8 +202,7 @@ if __name__ == "__main__":
     net = MarianMTModel.from_pretrained(MODEL_NAME)
     with open(CONFIG_PATH, "r") as ymlfile:
         cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
-    cfg["net"]["epoch"] = 10
-    cfg["net"]["batch_size"] = 2
+
     model = BaseModel(net, MODEL_NAME, cfg)
 
     train = OpusDataset(os.path.join(DATASET_PATH, TRAIN_FILE_EN), 

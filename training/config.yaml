@@ -1,6 +1,6 @@
 net:
     epoch: 1
-    batch_size: 16
+    batch_size: 4
     optimizer: AdamW
     device: cuda:0
     lr: 0.0001
