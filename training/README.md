@@ -1,5 +1,13 @@
 ###### Для запуска обучения выполните скрипт training/pipeline.py
 		python3 training/pipeline.py --model "model_name" --stage "stage" --dataset "opus" --dataset_path "path/to/dataset/folder" --config "path"
+Например:
+
+		python3 training/pipeline.py --model "t5-small" --stage download --dataset OPUS --dataset_path dataset/ --path_to_yaml_params 	training/config.yaml
+
+При таком запуске сначала будет скачан датасет opus в директорию dataset, дальше начнется обучение модели "t5-small", используя гиперпараметры из training/config.yaml
+		
+		python3 training/pipeline.py --model "Helsinki-NLP/opus-mt-en-ru" --stage dataset --dataset OPUS --dataset_path dataset/ --path_to_yaml_params training/config.yaml
+В этом случае датасет будет загружен из директории dataset и начнется обучение модели "Helsinki-NLP/opus-mt-en-ru"
 
 --model - имя модели, например "Helsinki-NLP/opus-mt-en-ru" или "t5-small"
 --stage - этапы, с которого нужно начать обучение. Возможные значения: download, preprocess, dataset

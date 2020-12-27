@@ -2,7 +2,7 @@ net:
     epoch: 1
     batch_size: 4
     optimizer: AdamW
-    device: cuda:0
+    device: cpu
     lr: 0.0001
     label_smoothing: 0
     # schedulers possible values are: 

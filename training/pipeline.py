@@ -1,12 +1,15 @@
 import os
+import sys
 import yaml
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from torch.utils.data import Dataset
 from transformers import AutoModelForSeq2SeqLM
+from pathlib import Path
 import wget
 
-from training.datasets.opus_dataset import OpusDataset
-from training.models.base_model import BaseModel
+sys.path.insert(0, os.path.abspath(Path(__file__).parents[1].resolve()))
+from training.src.datasets.opus_dataset import OpusDataset
+from training.src.base_model import BaseModel
 
 OPUS_LINKS = {"dev_en": "http://data.statmt.org/opus-100-corpus/v1.0/supervised/en-ru/opus.en-ru-dev.en",
                "dev_ru": "http://data.statmt.org/opus-100-corpus/v1.0/supervised/en-ru/opus.en-ru-dev.ru",
