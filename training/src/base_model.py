@@ -25,9 +25,8 @@ sys.path.insert(0, os.path.abspath(Path(__file__).parents[2].resolve()))
 from training.src.utils import label_smoothed_nll_loss, calculate_bleu
 from transformers import MarianMTModel, MarianTokenizer, T5Model
 from training.src.datasets.opus_dataset import OpusDataset
+from training.constants import WEIGHTS_DIR
 
-
-DIRNAME = Path(__file__).parents[1].resolve() / 'weights'
 
 conf_to_scheduler = {
     "linear": get_linear_schedule_with_warmup,
@@ -50,8 +49,8 @@ class BaseModel:
         self.optimizer = None
 
     def weights_filename(self, epoch, loss, bleu) -> str:
-        DIRNAME.mkdir(parents=True, exist_ok=True)
-        return str(DIRNAME / f'{self.name}_{epoch}_{loss}_{bleu}_weights.pth')
+        WEIGHTS_DIR.mkdir(parents=True, exist_ok=True)
+        return str(WEIGHTS_DIR / f'{self.name}_{epoch}_{loss}_{bleu}_weights.pth')
 
     def _get_lr_scheduler(self):
         return model.scheduler
@@ -178,27 +177,3 @@ class BaseModel:
         """ Load the trained model
         """
         self.model.load_state_dict(torch.load(filepath))
-
-if __name__ == "__main__":
-    MODEL_NAME = 'Helsinki-NLP/opus-mt-en-ru'
-    CONFIG_PATH = 'training/config.yaml'
-    DATASET_PATH = 'dataset'
-
-    TRAIN_FILE_EN = 'opus.en-ru-train.en.txt'
-    TRAIN_FILE_RU = 'opus.en-ru-train.ru'
-
-    VAL_FILE_EN = 'opus.en-ru-dev.en.txt'
-    VAL_FILE_RU = 'opus.en-ru-dev.ru.txt'
-    
-    net = MarianMTModel.from_pretrained(MODEL_NAME)
-    with open(CONFIG_PATH, "r") as ymlfile:
-        cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
-
-    model = BaseModel(net, MODEL_NAME, cfg)
-
-    train = OpusDataset(os.path.join(DATASET_PATH, TRAIN_FILE_EN), 
-                      os.path.join(DATASET_PATH, TRAIN_FILE_RU))
-
-    val = OpusDataset(os.path.join(DATASET_PATH, VAL_FILE_EN), 
-                      os.path.join(DATASET_PATH, VAL_FILE_RU))
-    model.fit(train, val)

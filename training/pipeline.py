@@ -10,14 +10,7 @@ import wget
 sys.path.insert(0, os.path.abspath(Path(__file__).parents[1].resolve()))
 from training.src.datasets.opus_dataset import OpusDataset
 from training.src.base_model import BaseModel
-
-OPUS_LINKS = {"dev_en": "http://data.statmt.org/opus-100-corpus/v1.0/supervised/en-ru/opus.en-ru-dev.en",
-               "dev_ru": "http://data.statmt.org/opus-100-corpus/v1.0/supervised/en-ru/opus.en-ru-dev.ru",
-               "test_en": "http://data.statmt.org/opus-100-corpus/v1.0/supervised/en-ru/opus.en-ru-test.en",
-               "test_ru": "http://data.statmt.org/opus-100-corpus/v1.0/supervised/en-ru/opus.en-ru-test.ru",
-               "train_en": "http://data.statmt.org/opus-100-corpus/v1.0/supervised/en-ru/opus.en-ru-train.en",
-               "train_ru": "http://data.statmt.org/opus-100-corpus/v1.0/supervised/en-ru/opus.en-ru-train.ru"
-               }
+from constants import OPUS_LINKS, OPUS_PATHS
 
 parser = ArgumentParser(
     prog="seq2seq trainer",
@@ -53,12 +46,12 @@ if stage == "preprocess":
     pass
 
 if dataset.lower() == "opus":
-    train = OpusDataset(os.path.join(dataset_path, "opus.en-ru-train.en"), 
-                        os.path.join(dataset_path, "opus.en-ru-train.ru"))
-    val = OpusDataset(os.path.join(dataset_path, "opus.en-ru-dev.en"), 
-                        os.path.join(dataset_path, "opus.en-ru-dev.ru"))
-    test = OpusDataset(os.path.join(dataset_path, "opus.en-ru-test.en"), 
-                        os.path.join(dataset_path, "opus.en-ru-test.ru"))
+    train = OpusDataset(os.path.join(dataset_path, OPUS_PATHS["train_en"]), 
+                        os.path.join(dataset_path, OPUS_PATHS["train_ru"]))
+    val = OpusDataset(os.path.join(dataset_path, OPUS_PATHS["dev_en"]), 
+                        os.path.join(dataset_path, OPUS_PATHS["dev_ru"]))
+    test = OpusDataset(os.path.join(dataset_path, OPUS_PATHS["test_en"]), 
+                        os.path.join(dataset_path, OPUS_PATHS["test_ru"]))
 
 net = AutoModelForSeq2SeqLM.from_pretrained(model_name)
     
