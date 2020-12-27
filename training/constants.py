@@ -1,7 +1,7 @@
 from pathlib import Path
 
 
-WEIGHTS_DIR = Path(__file__).resolve() / 'weights'
+WEIGHTS_DIR = Path(__file__).parents[2].resolve() / 'weights'
 
 OPUS_LINKS = {"dev_en": "http://data.statmt.org/opus-100-corpus/v1.0/supervised/en-ru/opus.en-ru-dev.en",
                "dev_ru": "http://data.statmt.org/opus-100-corpus/v1.0/supervised/en-ru/opus.en-ru-dev.ru",
