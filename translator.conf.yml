@@ -1,9 +1,0 @@
-version: 1
-APPLICATION_NAME: "translator"
-
-DEFAULT_PRETRAINED_HFACE_MODEL_FILEPATH: opus-mt-en-ru
-DEFAULT_HF_NAME_MODEL_FILEPATH: Helsinki-NLP/opus-mt-en-ru
-DEFAULT_PRETRAINED_USER_MODEL_FILEPATH: ./data/stored-opus-mt-en-ru
-
-DEFAULT_LOGGING_CONFIG_FILEPATH: logging.conf.yml
-max_length: 250
