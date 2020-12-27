@@ -1,27 +1,9 @@
 net:
     epoch: 1
     batch_size: 4
-    optimizer: AdamW
     device: cpu
     lr: 0.0001
     label_smoothing: 0
-    # schedulers possible values are: 
-      # "linear"
-      # "cosine"
-      # "cosine_w_restarts"
-      # "polynomial"
-      # "constant"
-      # "constant_w_warmup"
     use_scheduler: 0
-    scheduler: linear
-    # The number of steps for the warmup phase.
-    warmup_steps: 5
-    # The total number of training steps.
-    num_training_steps: 15 
-    # The number of hard restarts to use.
-    num_cycles: 0.5
-    # last_epoch
-    last_epoch: -1
-
 loader:
     num_workers: 2
