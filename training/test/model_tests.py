@@ -41,7 +41,7 @@ def test_base_model_weights_named_by_model(get_model):
     with open(CONFIG_PATH, "r") as ymlfile:
         cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
     model = BaseModel(net, MODEL_NAME, cfg)
-    weights_dir = model.weights_filename
+    weights_dir = model.weights_filename(0, 0, 0)
     assert model.name in weights_dir
 
 def test_fit(get_model):
@@ -79,5 +79,5 @@ def test_schedulers(get_model):
 def test_bleu():
     line1 = ["привет"]
     line2 = ["привут"]
-    
+
     assert calculate_bleu(line1, line2) != 0

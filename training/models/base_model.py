@@ -39,20 +39,18 @@ conf_to_scheduler = {
 
 
 class BaseModel:
-    def __init__(self, model, tokenizer_name, config, experiments_path="./"):
-        self.name = f'{self.__class__.__name__}_{tokenizer_name}'
+    def __init__(self, model, tokenizer_name, config):
+        self.name = f'{self.__class__.__name__}_{tokenizer_name.replace("/", "_")}'
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
         self.model = model
         self.device = torch.device(config["net"]["device"])
         self.model.to(self.device)
         self.config = config
         self.optimizer = None
-        self.experiments_path = experiments_path
 
-    @property
-    def weights_filename(self) -> str:
+    def weights_filename(self, epoch, loss, bleu) -> str:
         DIRNAME.mkdir(parents=True, exist_ok=True)
-        return str(DIRNAME / f'{self.name}_weights.pth')
+        return str(DIRNAME / f'{self.name}_{epoch}_{loss}_{bleu}_weights.pth')
 
     def _get_lr_scheduler(self, num_training_steps):
         schedule_func = conf_to_scheduler[self.config["net"]["scheduler"]]
@@ -65,30 +63,28 @@ class BaseModel:
                 self.optimizer, num_warmup_steps=self.config["net"]["warmup_steps"], num_training_steps=num_training_steps
             )
         return scheduler
-
-    def run_one_epoch(self, loader, train=True):
+    
+    def iteration(self, loader, train=True):
         t_loss = 0
         perplexity = 0
         num_steps = 0
         bleu = 0
-        if train:
-            self.model.train()
-        else:
-            self.model.eval()
-
         for batch in loader:
             if train:
                 self.optimizer.zero_grad()
             src_str = batch[0]
             target_str = batch[1]
             inputs = self.tokenizer.prepare_seq2seq_batch(src_str, target_str, return_tensors="pt")  # "pt" for pytorch
-            out = self.model(**inputs)
+            input_ids = torch.tensor(inputs.input_ids).to(self.device, dtype=torch.long)
+            attention_mask = torch.tensor(inputs.attention_mask).to(self.device, dtype=torch.long)
+            labels = torch.tensor(inputs.attention_mask).to(self.device, dtype=torch.long)
+            out = self.model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
             loss = out.loss
             if train:
                 loss.backward()
                 self.optimizer.step()
             if not train:
-                translated = self.model.generate(**self.tokenizer.prepare_seq2seq_batch(src_str, return_tensors="pt"))
+                translated = self.model.generate(input_ids=input_ids, attention_mask=attention_mask)
                 tgt_text = [self.tokenizer.decode(t, skip_special_tokens=True) for t in translated]
                 bleu += calculate_bleu(tgt_text, target_str)["bleu"]
             t_loss += loss.item()
@@ -100,7 +96,16 @@ class BaseModel:
         bleu /= num_steps
         return t_loss, perplexity, bleu
 
-
+    def run_one_epoch(self, loader, train=True):
+        if train:
+            self.model.train()
+            t_loss, perplexity, bleu = self.iteration(loader, train)
+        else:
+            self.model.eval()
+            with torch.no_grad():
+                t_loss, perplexity, bleu = self.iteration(loader, train)
+        return t_loss, perplexity, bleu
+        
     def fit(self, train_dataset, val_dataset=None):
         experiment_id = mlflow.set_experiment(self.name)
 
@@ -149,19 +154,43 @@ class BaseModel:
                     mlflow.log_metric("val perplexity", val_perplexity, step=epoch)    
                     mlflow.log_metric("val bleu", bleu, step=epoch)    
                     print(f"val: Epoch: {epoch + 1}, loss: {round(val_loss, 4)}, perplexity: {round(val_perplexity)}, bleu: {bleu}")
-                
+                    self.save_model(self.weights_filename(epoch + 1, round(val_loss, 4), round(bleu, 4)))
             self.scheduler.step()
 
-    def evaluate():
-        pass
+    def evaluate(self, val_dataset):
+        num_workers = self.config["net"]["num_workers"]
+        batch_size = self.config["net"]["batch_size"]
+        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, 
+                          num_workers=num_workers, pin_memory=True, drop_last=False)
+        _, _, bleu = self.run_one_epoch(val_loader, train=False)
+        return bleu
 
+    def loss(self):
+        return self.config["net"]["loss_fn"]
+
+    def optimizer(self):
+        return self.config["net"]["optimizer"]
+
+    def metrics(self):
+        return ['bleu']
+
+    def save_model(self, filepath: str):
+        """ Save the trained model
+        """
+        torch.save(self.model.state_dict(), filepath)
+
+
+    def load_model(self, filepath: str):
+        """ Load the trained model
+        """
+        self.model.load_state_dict(torch.load(filepath))
 
 if __name__ == "__main__":
     MODEL_NAME = 'Helsinki-NLP/opus-mt-en-ru'
     CONFIG_PATH = 'training/config.yaml'
     DATASET_PATH = 'dataset'
-    TEST_FILE_EN = 'test_en'
-    TEST_FILE_RU = 'test_ru'
+    TEST_FILE_EN = 'opus.en-ru-dev.en.txt'
+    TEST_FILE_RU = 'opus.en-ru-dev.ru.txt'
     net = MarianMTModel.from_pretrained(MODEL_NAME)
     with open(CONFIG_PATH, "r") as ymlfile:
         cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
