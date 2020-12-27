@@ -76,12 +76,3 @@ def test_predictor_can_load_stored_model(predictor_instance):
 
 def test_predictor_check_input_len(predictor_instance):
     assert 'reduce text for' in predictor_instance.predict(cfg['INPUT_TEXT'] * 100)
-
-
-# @pytest.mark.slow
-# def _test_from_pretrained_identifier():
-#     model = AutoModelForSeq2SeqLM.from_pretrained(MODEL_FOR_SEQ_TO_SEQ_CAUSAL_LM_MAPPING)
-#     assert isinstance(model, BertForMaskedLM)
-#     assert model.num_parameters() == 14410
-#     assert model.num_parameters(only_trainable=True) == 14410
-
