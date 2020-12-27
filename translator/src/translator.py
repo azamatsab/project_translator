@@ -1,46 +1,36 @@
 """ file description
 """
+import os
 import logging
 import logging.config
 from textwrap import dedent
 
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 import yaml
-# from rouge_score import rouge_scorer, scoring
-# from sacrebleu import corpus_bleu
 
-# from base_model import BaseModel
-# from utils import calculate_rouge, calculate_bleu
-from translator.base_model import BaseModel
-from translator.utils import calculate_rouge, calculate_bleu
+from translator.src.base_model import BaseModel
+from translator.src.utils import calculate_rouge, calculate_bleu
 
-DEFAULT_PRETRAINED_HFACE_MODEL_FILEPATH = "opus-mt-en-ru"
-DEFAULT_HF_NAME_MODEL_FILEPATH = "Helsinki-NLP/opus-mt-en-ru"
-DEFAULT_PRETRAINED_USER_MODEL_FILEPATH = "./data/stored-opus-mt-en-ru"
+DEFAULT_CONFIG_FILEPATH = os.sep.join(
+    [
+        os.path.dirname(__file__), 
+        '..', 
+        'params', 
+        'config.translator.yml',
+    ]
+)
 
-APPLICATION_NAME = "translator"
-DEFAULT_CONFIG_FILEPATH = "translator.conf.yml"
-DEFAULT_LOGGING_CONFIG_FILEPATH = "logging.conf.yml"
-MAX_LENGTH = 250
+with open(DEFAULT_CONFIG_FILEPATH, 'r') as fin:
+    cfg = yaml.safe_load(fin)
 
-# with open(DEFAULT_CONFIG_FILEPATH, "r") as fin:
-#     cfg = yaml.safe_load(fin)
-
-# logger = logging.getLogger()
-# logger = logging.getLogger(APPLICATION_NAME)  # for current example
 logger = logging.getLogger(__name__)
-
-# setup_logging()
-
-def setup_config():
-    pass
 
 class OPUSModel(BaseModel):
 
     """Base class, to be subclassed by predictors for specific type of data."""
 
     def __init__(self, tokenizer_filepath: str):
-        # self.name = f'{self.__class__.__name__}_{tokenizer_filepath}'
+        self.name = f'{self.__class__.__name__}_{tokenizer_filepath}'
         # self.name = f'{self.__class__.__name__}_{dataset_cls.__name__}_{network_fn.__name__}'
         logger.info("Initialize %s class with pretrained model %s", self.__class__.__name__, tokenizer_filepath)
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_filepath)
@@ -48,9 +38,11 @@ class OPUSModel(BaseModel):
 
 
     def predict(self, text: str) -> str:
-        if len(text) > MAX_LENGTH:
+        """ Predict text from English to Russian
+        """
+        if len(text) > cfg['MAX_LENGTH']:
             logger.debug("Try to translate too long sentence")
-            return dedent(f"""Your text has length {len(text)} > {MAX_LENGTH}.
+            return dedent(f"""Your text has length {len(text)} > {cfg['MAX_LENGTH']}.
             Please, reduce text for translator""")
         ids = self.tokenizer(text, return_tensors='pt').input_ids
         output = self.model.generate(ids)
@@ -84,7 +76,7 @@ class OPUSModel(BaseModel):
         logger.info('Store the model to path: "%s"', filepath)
         self.tokenizer.save_pretrained(filepath)
         self.model.save_pretrained(filepath)
-        
+
 
     def load_model(self, filepath: str):
         """ Load the trained model
@@ -92,12 +84,6 @@ class OPUSModel(BaseModel):
         logger.info('Load the model for path: "%s"', filepath)
         self.tokenizer.from_pretrained(filepath)
         self.model.from_pretrained(filepath)
-
-def setup_logging():
-    """ Setup logging file
-    """
-    with open(DEFAULT_LOGGING_CONFIG_FILEPATH) as config_fin:
-        logging.config.dictConfig(yaml.safe_load(config_fin))
 
 # def main():
 
