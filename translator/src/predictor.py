@@ -1,8 +1,8 @@
 import logging
 from textwrap import dedent
 
-from translator.base_predictor import Predictor
-from translator.base_model import BaseModel
+from translator.src.base_predictor import Predictor
+from translator.src.base_model import BaseModel
 # from translator import OPUSModel
 
 MAX_LENGTH = 250
@@ -15,7 +15,7 @@ class CommonPredictor(Predictor):
         Load from
     """
     def __init__(self, model: BaseModel, path_to_model: str = None):
-        lgger.info(f"Init CommonPredictor with args:  '{model.__name__}' and '{path_to_model}'")
+        logger.info(f"Init CommonPredictor with args:  '{model.__name__}' and '{path_to_model}'")
         self.model = model(tokenizer_filepath=path_to_model)
 
     def predict(self, text: str) -> str:

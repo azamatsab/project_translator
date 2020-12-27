@@ -16,7 +16,7 @@ from transformers.optimization import (
     get_polynomial_decay_schedule_with_warmup,
 )
 
-from translator.base_model import BaseModel
+from translator.src.base_model import BaseModel
 from training.src.trainer import Trainer
 from training.src.datasets.opus_dataset import OpusDataset
 from training.src.metrics import calculate_bleu
