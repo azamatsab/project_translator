@@ -6,9 +6,9 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from transformers import MarianMTModel, MarianTokenizer
 
-from training.models.base_model import BaseModel
-from training.datasets.opus_dataset import OpusDataset
-from training.models.utils import calculate_bleu
+from training.src.base_model import BaseModel
+from training.src.datasets.opus_dataset import OpusDataset
+from training.src.utils import calculate_bleu
 
 MODEL_NAME = 'Helsinki-NLP/opus-mt-en-ru'
 CONFIG_PATH = 'training/config.yaml'

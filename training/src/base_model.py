@@ -22,9 +22,9 @@ from transformers.optimization import (
 )
 
 sys.path.insert(0, os.path.abspath(Path(__file__).parents[2].resolve()))
-from training.models.utils import label_smoothed_nll_loss, calculate_bleu
+from training.src.utils import label_smoothed_nll_loss, calculate_bleu
 from transformers import MarianMTModel, MarianTokenizer, T5Model
-from training.datasets.opus_dataset import OpusDataset
+from training.src.datasets.opus_dataset import OpusDataset
 
 
 DIRNAME = Path(__file__).parents[1].resolve() / 'weights'
