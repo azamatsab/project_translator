@@ -2,6 +2,7 @@
 import os
 import sys
 import yaml
+import logging
 from pathlib import Path
 from tqdm import tqdm
 
@@ -13,6 +14,7 @@ from torch.utils.data import Dataset, DataLoader
 sys.path.insert(0, os.path.abspath(Path(__file__).parents[2].resolve()))
 from training.src.datasets.opus_dataset import OpusDataset
 
+logger = logging.getLogger(__name__)
 
 class Trainer:
     def __init__(self, model, config):
@@ -23,6 +25,8 @@ class Trainer:
         self.config = config
         self.optimizer = self.model.optimizer(config["net"]["lr"])
         self.scheduler = self.model.scheduler()
+        device_name = config["net"]["device"]
+        logger.info(f"Trainer initialized with {model.name}, on device: {device_name}")
 
     def iteration(self, loader, train=True):
         t_loss = 0
@@ -55,18 +59,20 @@ class Trainer:
         return t_loss, perplexity
 
     def fit(self, train_dataset, val_dataset=None):
+        logger.info(f"Start fit, train dataset length {len(train_dataset)}")
         experiment_id = mlflow.set_experiment(self.model.name)
-
         num_workers = self.config["loader"]["num_workers"]
         batch_size = self.config["net"]["batch_size"]
         epochs = self.config["net"]["epoch"]
         lr = self.config["net"]["lr"]
-
+        logger.info("Parameters: batch_size: {batch_size}, epochs: {epochs}, lr: {lr}")
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, 
                           num_workers=num_workers, pin_memory=True, drop_last=True)
         if val_dataset:
             val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, 
                           num_workers=num_workers, pin_memory=True, drop_last=False)
+        else:
+            looger.warning("Validation dataset wasnt passed. Do not rely on training dataset results!")
 
         with mlflow.start_run(experiment_id=experiment_id):
             mlflow.log_param("batch_size", batch_size)
@@ -79,21 +85,24 @@ class Trainer:
                 t_loss, perplexity = self.run_one_epoch(train_loader, train=True)                
                 mlflow.log_metric("train loss", t_loss, step=epoch)
                 mlflow.log_metric("train perplexity", perplexity, step=epoch)
-                print(f"train: Epoch: {epoch + 1}, loss: {round(t_loss, 4)}, perplexity: {round(perplexity)}")
+                logger.info(f"train: Epoch: {epoch + 1}, loss: {round(t_loss, 4)}, perplexity: {round(perplexity)}")
                 if val_dataset:
                     val_loss, val_perplexity = self.run_one_epoch(val_loader, train=False)
                     mlflow.log_metric("val loss", val_loss, step=epoch)
                     mlflow.log_metric("val perplexity", val_perplexity, step=epoch)    
-                    print(f"val: Epoch: {epoch + 1}, loss: {round(val_loss, 4)}, perplexity: {round(val_perplexity)}")
+                    logger.info(f"val: Epoch: {epoch + 1}, loss: {round(val_loss, 4)}, perplexity: {round(val_perplexity)}")
                     self.model.save_model(self.model.weights_filename)
+                    logger.debug(f"Saving model {self.model.weights_filename}")
                     if (epoch + 1) % self.config["net"]["calculate_bleu_step"] == 0:
-                        bleu = self.calculate_metrics(val_dataset)
-                        mlflow.log_metric("val bleu", bleu, step=epoch)    
+                        metric = self.calculate_metrics(val_dataset)
+                        mlflow.log_metric(self.model.metrics()[0], metric, step=epoch)
+                        logger.info(f"{self.model.metrics()[0]}: {metric}")    
             if self.config["net"]["use_scheduler"]:
                 self.scheduler.step()
                 
 
     def calculate_metrics(self, dataset):
+        logger.info(f"Start calculating {self.model.metrics()[0]} metric")
         num_workers = self.config["loader"]["num_workers"]
         batch_size = self.config["net"]["batch_size"]
         loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, 
