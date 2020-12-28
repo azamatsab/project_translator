@@ -1,0 +1,49 @@
+POST http://localhost:3824/v1/translate
+Content-Type: application/json
+
+{
+	"source_lang": "<язык переводимого текста>",
+	"target_lang": "<язык, на который нужно перевести>",
+	"text": "<some text>"
+}
+
+###
+
+POST http://localhost:3824/v1/translate
+Content-Type: application/json
+
+{
+	"source_lang": "EN",
+	"target_lang": "RU",
+	"text": "hello world!"
+}
+
+###
+
+POST http://localhost:3824/v1/translate
+Content-Type: application/json
+
+{
+	"source_lang": "EN",
+	"target_lang": "RU",
+	"text": ""
+}
+
+###
+
+POST http://localhost:3824/v1/translate
+Content-Type: application/json
+
+{
+	"source_lang": "EN",
+	"target_lang": "RU",
+	"text": "<очень большой и толстый бессодержательный текст который настолько длинный что функция которая делает его перевод аж отказывается делать его перевод>"
+}
+
+###
+
+GET http://localhost:3824/v1/translate
+Accept: application/json
+
+###
+
