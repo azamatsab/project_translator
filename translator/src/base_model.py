@@ -4,6 +4,7 @@ class BaseModel(object):
 
     def __init__(self):
         self.name = f'{self.__class__.__name__}'
+        self.mode = None
         # self.name = f'{self.__class__.__name__}_{dataset_cls.__name__}_{network_fn.__name__}'
 
     @property
@@ -33,6 +34,9 @@ class BaseModel(object):
         pass
 
     def to(self, device):
+        pass
+
+    def set_mode(self, mode, rank):
         pass
 
     def metrics(self):  # pylint: disable=no-self-use

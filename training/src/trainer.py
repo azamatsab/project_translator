@@ -29,16 +29,22 @@ with open(cfg["PATH_LOGGING_CONF"]) as config_fin:
     logging.config.dictConfig(yaml.safe_load(config_fin))
 
 class Trainer:
-    def __init__(self, model, config):
+    def __init__(self, model, config, device=0):
         self.model = model
         self.net = self.model.model
-        self.device = torch.device(config["net"]["device"])
+        self.device_name = config["net"]["device"]
+        
+        if config["net"]["ddp"]:
+            self.device = device
+            self.model.set_mode("ddp", device)
+        else:
+            self.device = torch.device(self.device_name)
+        
         self.model.to(self.device)
         self.config = config
         self.optimizer = self.model.optimizer(config["net"]["lr"])
         self.scheduler = self.model.scheduler()
-        device_name = config["net"]["device"]
-        logging.info(f"Trainer initialized with {model.name}, on device: {device_name}")
+        logging.info(f"Trainer initialized with {model.name}, on device: {self.device_name}")
 
     def iteration(self, loader, train=True):
         t_loss = 0
@@ -77,7 +83,7 @@ class Trainer:
         batch_size = self.config["net"]["batch_size"]
         epochs = self.config["net"]["epoch"]
         lr = self.config["net"]["lr"]
-        logging.info("Parameters: batch_size: {batch_size}, epochs: {epochs}, lr: {lr}")
+        logging.info(f"Parameters: batch_size: {batch_size}, epochs: {epochs}, lr: {lr}")
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, 
                           num_workers=num_workers, pin_memory=True, drop_last=True)
         if val_dataset:

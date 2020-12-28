@@ -6,11 +6,22 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
 import wget
 import yaml
-from torch.utils.data import Dataset
 from transformers import AutoModelForSeq2SeqLM
+
+import torch
+import torch.distributed as dist
+import torch.nn as nn
+import torch.optim as optim
+import torch.multiprocessing as mp
+
+from torch.utils.data import Dataset
+from torch.nn.parallel import DistributedDataParallel as DDP
 
 sys.path.insert(0, os.path.abspath(Path(__file__).parents[1].resolve()))
 from training.src.datasets.opus_dataset import OpusDataset
+from training.src.trainer import Trainer
+from training.src.setup_ddp import setup, cleanup
+from translator.src.seq2seq import Seq2SeqModel
 
 DEFAULT_CONFIG_FILEPATH = os.sep.join(
     [
@@ -63,11 +74,27 @@ def load_datasets(args):
     else:
         logging.warning(f"Dataset {dataset} not defined yet")
 
-def run(model, train, val, test, cfg):
-    logging.info("Start running training pipeline")
-    trainer = Trainer(model, cfg)
+def run_train(rank, world_size):
+    setup(rank, world_size)
+    trainer = Trainer(model, config, rank)
     trainer.fit(train, val)
     trainer.calculate_metrics(test)
+    cleanup()
+
+def run_multigpu(fn, world_size):
+    mp.spawn(fn,
+             args=(world_size,),
+             nprocs=world_size,
+             join=True)
+
+def run(model, train, val, test, cfg):
+    logging.info("Start running training pipeline")
+    if cfg["net"]["ddp"]:
+        run_multigpu(run_train, torch.cuda.device_count())
+    else:
+        trainer = Trainer(model, cfg)
+        trainer.fit(train, val)
+        trainer.calculate_metrics(test)
 
 if __name__ == '__main__':
     parser = ArgumentParser(
@@ -75,6 +102,7 @@ if __name__ == '__main__':
         description="pipeline to train seq2seq models",
         formatter_class=ArgumentDefaultsHelpFormatter,
         )
+
     parser = setup_parser(parser)
     args = parser.parse_args()
     handle_stages(args)
@@ -84,4 +112,5 @@ if __name__ == '__main__':
     with open(args.path_yaml, "r") as ymlfile:
         cfg = yaml.safe_load(ymlfile)
 
-    # run(model, train, val, test, cfg)
+    model = Seq2SeqModel(model_name)
+    run(model, train, val, test, cfg)
