@@ -1,3 +1,7 @@
+import os
+from pathlib import Path
+
+import yaml
 import torch
 import torch.distributed as dist
 import torch.nn as nn
@@ -20,7 +24,17 @@ from transformers.optimization import (
 )
 
 from translator.src.base_model import BaseModel
+from training.src.metrics import calculate_bleu
 
+DEFAULT_CONFIG_FILEPATH = os.sep.join(
+    [
+        os.path.dirname(__file__),
+        '../../training/constants.yml',
+    ]
+)
+
+with open(DEFAULT_CONFIG_FILEPATH, 'r') as fin:
+    cfg = yaml.safe_load(fin)
 
 class Seq2SeqModel(BaseModel):
     def __init__(self, tokenizer_filepath: str):
@@ -34,7 +48,7 @@ class Seq2SeqModel(BaseModel):
     def weights_filename(self) -> str:
         weights_dir = Path(cfg["WEIGHTS_DIR"])
         weights_dir.mkdir(parents=True, exist_ok=True)
-        return os.path.join(cfg["WEIGHTS_DIR"], f'{self.name}_weights.pth')
+        return os.path.join(cfg["WEIGHTS_DIR"], f'{self.name}')
 
     def set_mode(self, mode, rank):
         self.mode = mode

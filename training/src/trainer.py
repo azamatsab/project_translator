@@ -131,14 +131,15 @@ class Trainer:
                     mlflow.log_metric("val loss", val_loss, step=epoch)
                     mlflow.log_metric("val perplexity", val_perplexity, step=epoch)    
                     logging.info(f"val: Epoch: {epoch + 1}, loss: {round(val_loss, 4)}, perplexity: {round(val_perplexity)}")
-                    self.model.save_model(self.model.weights_filename)
-                    logging.debug(f"Saving model {self.model.weights_filename}")
+                    
+                    path_to_save = self.model.weights_filename + f"_{epoch + 1}_{val_loss}"
+                    self.model.save_model(path_to_save)
+                    logging.debug(f"Saving model {path_to_save}")
                     if (epoch + 1) % self.config["net"]["calculate_bleu_step"] == 0:
                         metric = self.calculate_metrics(val_dataset)
                         mlflow.log_metric(self.model.metrics()[0], metric, step=epoch)
             if self.config["net"]["use_scheduler"]:
                 self.scheduler.step()
-                
 
     def calculate_metrics(self, dataset, world_size=None):
         logging.info(f"Start calculating {self.model.metrics()[0]} metric")

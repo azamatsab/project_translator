@@ -52,7 +52,7 @@ class TestModel(BaseModel):
     def weights_filename(self) -> str:
         weights_dir = Path(cfg["WEIGHTS_DIR"])
         weights_dir.mkdir(parents=True, exist_ok=True)
-        return os.path.join(cfg["WEIGHTS_DIR"], f'{self.name}_weights.h5')
+        return os.path.join(cfg["WEIGHTS_DIR"], f'{self.name}')
 
     def training_step(self, batch, device):
         src_str = batch["source"]
@@ -150,6 +150,7 @@ def test_calculate_metrics(get_model):
         cfg = yaml.safe_load(ymlfile)
     cfg["net"]["epoch"] = 2
     cfg["net"]["batch_size"] = 2
+    cfg["net"]["device"] = "cpu"
     trainer = Trainer(net, cfg)
     val = OpusDataset(os.path.join(DATASET_PATH, TEST_FILE_EN), 
                       os.path.join(DATASET_PATH, TEST_FILE_RU))

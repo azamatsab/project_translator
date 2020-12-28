@@ -66,7 +66,7 @@ def load_datasets(args):
     if dataset.lower() == "opus":
         train = OpusDataset(os.path.join(dataset_path, "opus.en-ru-train.en"), 
                             os.path.join(dataset_path, "opus.en-ru-train.ru"))
-        val = OpusDataset(os.path.join(dataset_path, "opus.en-ru-test.en"), 
+        val = OpusDataset(os.path.join(dataset_path, "opus.en-ru-dev.en"), 
                             os.path.join(dataset_path, "opus.en-ru-dev.ru"))
         test = OpusDataset(os.path.join(dataset_path, "opus.en-ru-test.en"), 
                             os.path.join(dataset_path, "opus.en-ru-test.ru"))
