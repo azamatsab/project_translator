@@ -39,7 +39,7 @@ def setup_parser(parser):
     return parser
 
 def handle_stages(args):
-    logging.info(f"Starting from stage {args.stage}")
+    logging.info(f"Starting from stage '{args.stage}'")
     if args.stage == "download":
         if dataset.lower() == "opus":
             for ds_name in cfg["OPUS_LINKS"]:
@@ -53,12 +53,12 @@ def load_datasets(args):
     dataset = args.dataset
     dataset_path = args.dataset_path
     if dataset.lower() == "opus":
-        train = OpusDataset(os.path.join(dataset_path, cfg["OPUS_PATHS"]["train_en"]), 
-                            os.path.join(dataset_path, cfg["OPUS_PATHS"]["train_ru"]))
-        val = OpusDataset(os.path.join(dataset_path, cfg["OPUS_PATHS"]["dev_en"]), 
-                            os.path.join(dataset_path, cfg["OPUS_PATHS"]["dev_ru"]))
-        test = OpusDataset(os.path.join(dataset_path, cfg["OPUS_PATHS"]["test_en"]), 
-                            os.path.join(dataset_path, cfg["OPUS_PATHS"]["test_ru"]))
+        train = OpusDataset(os.path.join(dataset_path, "opus.en-ru-train.en"), 
+                            os.path.join(dataset_path, "opus.en-ru-train.ru"))
+        val = OpusDataset(os.path.join(dataset_path, "opus.en-ru-test.en"), 
+                            os.path.join(dataset_path, "opus.en-ru-dev.ru"))
+        test = OpusDataset(os.path.join(dataset_path, "opus.en-ru-test.en"), 
+                            os.path.join(dataset_path, "opus.en-ru-test.ru"))
         return train, val, test
     else:
         logging.warning(f"Dataset {dataset} not defined yet")
@@ -82,6 +82,6 @@ if __name__ == '__main__':
     model_name = args.model
     
     with open(args.path_yaml, "r") as ymlfile:
-        cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
+        cfg = yaml.safe_load(ymlfile)
 
     # run(model, train, val, test, cfg)

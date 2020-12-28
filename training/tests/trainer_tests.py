@@ -125,7 +125,7 @@ def get_model2():
 
 def test_config_file():
     with open(CONFIG_PATH, "r") as ymlfile:
-        cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
+        cfg = yaml.safe_load(ymlfile)
     assert 'net' in cfg
     assert 'loader' in cfg
     assert 'batch_size' in cfg['net']
@@ -134,7 +134,7 @@ def test_config_file():
 def test_fit(get_model):
     net = get_model
     with open(CONFIG_PATH, "r") as ymlfile:
-        cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
+        cfg = yaml.safe_load(ymlfile)
     cfg["net"]["epoch"] = 2
     cfg["net"]["batch_size"] = 2
     cfg["net"]["device"] = "cpu"
@@ -144,22 +144,10 @@ def test_fit(get_model):
                       os.path.join(DATASET_PATH, TEST_FILE_RU))
     trainer.fit(val, val)
 
-# def test_fit2(get_model2):
-#     net = get_model2
-#     with open(CONFIG_PATH, "r") as ymlfile:
-#         cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
-#     cfg["net"]["epoch"] = 2
-#     cfg["net"]["batch_size"] = 2
-#     trainer = Trainer(net, cfg)
-
-#     val = OpusDataset(os.path.join(DATASET_PATH, TEST_FILE_EN), 
-#                       os.path.join(DATASET_PATH, TEST_FILE_RU))
-#     trainer.fit(val, val)
-
 def test_calculate_metrics(get_model):
     net = get_model
     with open(CONFIG_PATH, "r") as ymlfile:
-        cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
+        cfg = yaml.safe_load(ymlfile)
     cfg["net"]["epoch"] = 2
     cfg["net"]["batch_size"] = 2
     trainer = Trainer(net, cfg)

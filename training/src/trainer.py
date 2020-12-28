@@ -108,7 +108,6 @@ class Trainer:
                     if (epoch + 1) % self.config["net"]["calculate_bleu_step"] == 0:
                         metric = self.calculate_metrics(val_dataset)
                         mlflow.log_metric(self.model.metrics()[0], metric, step=epoch)
-                        logging.info(f"{self.model.metrics()[0]}: {metric}")    
             if self.config["net"]["use_scheduler"]:
                 self.scheduler.step()
                 
@@ -126,4 +125,5 @@ class Trainer:
             metric += self.model.calculate_metrics(batch, self.device)
             samples += len(batch["source"])
         metric_mean_val = round(metric / samples, 2)
+        logging.info(f"{self.model.metrics()[0]}: {metric_mean_val}")
         return metric_mean_val
