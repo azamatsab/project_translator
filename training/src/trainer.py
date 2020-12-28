@@ -70,32 +70,21 @@ class Trainer:
 
         return t_loss, perplexity
 
-    def create_loaders(self, train_dataset, val_dataset, world_size):
+    def create_loader(self, dataset, shuffle, world_size):
         num_workers = self.config["loader"]["num_workers"]
         batch_size = self.config["net"]["batch_size"]
 
-        tr_sampler = None
-        val_sampler = None
+        sampler = None
+        loader = None
+        if dataset is not None:
+            if self.config["net"]["ddp"]:
+                sampler = DistributedSampler(
+                    dataset, rank=self.device, num_replicas=world_size, shuffle=shuffle
+                )
 
-        if self.config["net"]["ddp"]:
-            tr_sampler = DistributedSampler(
-                train_dataset, rank=self.device, num_replicas=world_size, shuffle=True
-            )
-
-            val_sampler = DistributedSampler(
-                val_dataset, rank=self.device, num_replicas=world_size, shuffle=False
-            )
-
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=tr_sampler, 
-                          num_workers=num_workers, pin_memory=True, drop_last=True)
-        if val_dataset:
-            val_loader = DataLoader(val_dataset, batch_size=batch_size, sampler=val_sampler, 
-                          num_workers=num_workers, pin_memory=True, drop_last=False)
-        else:
-            logging.warning("Validation dataset wasnt passed. Do not rely on training dataset results!")
-
-        return train_loader, val_loader
-        
+            loader = DataLoader(dataset, batch_size=batch_size, sampler=sampler, 
+                              num_workers=num_workers, pin_memory=True, drop_last=False)
+        return loader
 
     def fit(self, train_dataset, val_dataset=None, world_size=None):
         logging.info(f"Start fit, train dataset length {len(train_dataset)}")
@@ -106,7 +95,11 @@ class Trainer:
         lr = self.config["net"]["lr"]
         logging.info(f"Parameters: batch_size: {batch_size}, epochs: {epochs}, lr: {lr}")
 
-        train_loader, val_loader = self.create_loaders(train_dataset, val_dataset, world_size)
+        train_loader = self.create_loader(train_dataset, shuffle=True, world_size=world_size)
+        val_loader = self.create_loader(val_dataset, shuffle=False, world_size=world_size)
+        if val_loader is None:
+            logging.warning("Validation dataset is not provided!")
+
         with mlflow.start_run(experiment_id=experiment_id):
             mlflow.log_param("batch_size", batch_size)
             mlflow.log_param("lr", lr)
@@ -139,7 +132,7 @@ class Trainer:
         num_workers = self.config["loader"]["num_workers"]
         batch_size = self.config["net"]["batch_size"]
 
-        _, loader = self.create_loaders(dataset, dataset, world_size)
+        loader = self.create_loader(dataset, shuffle=False, world_size=world_size)
 
         metric = 0
         samples = 0
