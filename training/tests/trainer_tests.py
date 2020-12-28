@@ -1,7 +1,8 @@
 import os
 import pytest
-import yaml
+from pathlib import Path
 
+import yaml
 import torch
 from torch.utils.data import Dataset, DataLoader
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
@@ -20,8 +21,18 @@ from translator.src.base_model import BaseModel
 from training.src.trainer import Trainer
 from training.src.datasets.opus_dataset import OpusDataset
 from training.src.metrics import calculate_bleu
-from training.constants import WEIGHTS_DIR
 
+DEFAULT_CONFIG_FILEPATH = os.sep.join(
+    [
+        os.path.dirname(__file__),
+        '..',
+        'constants.yml',
+    ]
+)
+
+with open(DEFAULT_CONFIG_FILEPATH, 'r') as fin:
+    cfg = yaml.safe_load(fin)
+ 
 MODEL_NAME = 'Helsinki-NLP/opus-mt-en-ru'
 MODEL_NAME2 = 't5-small'
 CONFIG_PATH = 'training/config.yaml'
@@ -39,8 +50,9 @@ class TestModel(BaseModel):
 
     @property
     def weights_filename(self) -> str:
-        WEIGHTS_DIR.mkdir(parents=True, exist_ok=True)
-        return str(WEIGHTS_DIR / f'{self.name}_weights.h5')
+        weights_dir = Path(cfg["WEIGHTS_DIR"])
+        weights_dir.mkdir(parents=True, exist_ok=True)
+        return os.path.join(cfg["WEIGHTS_DIR"], f'{self.name}_weights.h5')
 
     def training_step(self, batch, device):
         src_str = batch["source"]

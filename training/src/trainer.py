@@ -1,11 +1,11 @@
 """Model class, to be extended by specific types of models."""
 import os
 import sys
-import yaml
 import logging
 from pathlib import Path
 from tqdm import tqdm
 
+import yaml
 import mlflow
 import torch
 from torch import device
@@ -14,7 +14,19 @@ from torch.utils.data import Dataset, DataLoader
 sys.path.insert(0, os.path.abspath(Path(__file__).parents[2].resolve()))
 from training.src.datasets.opus_dataset import OpusDataset
 
-logger = logging.getLogger(__name__)
+DEFAULT_CONFIG_FILEPATH = os.sep.join(
+    [
+        os.path.dirname(__file__),
+        '..',
+        'constants.yml',
+    ]
+)
+
+with open(DEFAULT_CONFIG_FILEPATH, 'r') as fin:
+    cfg = yaml.safe_load(fin)
+
+with open(cfg["PATH_LOGGING_CONF"]) as config_fin:
+    logging.config.dictConfig(yaml.safe_load(config_fin))
 
 class Trainer:
     def __init__(self, model, config):
@@ -26,7 +38,7 @@ class Trainer:
         self.optimizer = self.model.optimizer(config["net"]["lr"])
         self.scheduler = self.model.scheduler()
         device_name = config["net"]["device"]
-        logger.info(f"Trainer initialized with {model.name}, on device: {device_name}")
+        logging.info(f"Trainer initialized with {model.name}, on device: {device_name}")
 
     def iteration(self, loader, train=True):
         t_loss = 0
@@ -59,13 +71,13 @@ class Trainer:
         return t_loss, perplexity
 
     def fit(self, train_dataset, val_dataset=None):
-        logger.info(f"Start fit, train dataset length {len(train_dataset)}")
+        logging.info(f"Start fit, train dataset length {len(train_dataset)}")
         experiment_id = mlflow.set_experiment(self.model.name)
         num_workers = self.config["loader"]["num_workers"]
         batch_size = self.config["net"]["batch_size"]
         epochs = self.config["net"]["epoch"]
         lr = self.config["net"]["lr"]
-        logger.info("Parameters: batch_size: {batch_size}, epochs: {epochs}, lr: {lr}")
+        logging.info("Parameters: batch_size: {batch_size}, epochs: {epochs}, lr: {lr}")
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, 
                           num_workers=num_workers, pin_memory=True, drop_last=True)
         if val_dataset:
@@ -85,24 +97,24 @@ class Trainer:
                 t_loss, perplexity = self.run_one_epoch(train_loader, train=True)                
                 mlflow.log_metric("train loss", t_loss, step=epoch)
                 mlflow.log_metric("train perplexity", perplexity, step=epoch)
-                logger.info(f"train: Epoch: {epoch + 1}, loss: {round(t_loss, 4)}, perplexity: {round(perplexity)}")
+                logging.info(f"train: Epoch: {epoch + 1}, loss: {round(t_loss, 4)}, perplexity: {round(perplexity)}")
                 if val_dataset:
                     val_loss, val_perplexity = self.run_one_epoch(val_loader, train=False)
                     mlflow.log_metric("val loss", val_loss, step=epoch)
                     mlflow.log_metric("val perplexity", val_perplexity, step=epoch)    
-                    logger.info(f"val: Epoch: {epoch + 1}, loss: {round(val_loss, 4)}, perplexity: {round(val_perplexity)}")
+                    logging.info(f"val: Epoch: {epoch + 1}, loss: {round(val_loss, 4)}, perplexity: {round(val_perplexity)}")
                     self.model.save_model(self.model.weights_filename)
-                    logger.debug(f"Saving model {self.model.weights_filename}")
+                    logging.debug(f"Saving model {self.model.weights_filename}")
                     if (epoch + 1) % self.config["net"]["calculate_bleu_step"] == 0:
                         metric = self.calculate_metrics(val_dataset)
                         mlflow.log_metric(self.model.metrics()[0], metric, step=epoch)
-                        logger.info(f"{self.model.metrics()[0]}: {metric}")    
+                        logging.info(f"{self.model.metrics()[0]}: {metric}")    
             if self.config["net"]["use_scheduler"]:
                 self.scheduler.step()
                 
 
     def calculate_metrics(self, dataset):
-        logger.info(f"Start calculating {self.model.metrics()[0]} metric")
+        logging.info(f"Start calculating {self.model.metrics()[0]} metric")
         num_workers = self.config["loader"]["num_workers"]
         batch_size = self.config["net"]["batch_size"]
         loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, 
