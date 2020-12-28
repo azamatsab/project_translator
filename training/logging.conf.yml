@@ -1,0 +1,18 @@
+version: 1
+formatters:
+    simple:
+        class: logging.Formatter
+        format: "%(asctime)s %(name)s %(levelname)s %(message)s"
+        datefmt: "%Y-%m-%d %H:%M:%S"
+handlers:
+    stream_handler:
+        class: logging.StreamHandler
+        level: INFO
+        formatter: simple
+loggers:
+    module_logger:
+        level: DEBUG
+        handlers: [stream_handler]
+root:
+    level: DEBUG
+    handlers: [stream_handler]

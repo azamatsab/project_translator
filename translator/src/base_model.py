@@ -4,6 +4,7 @@ class BaseModel(object):
 
     def __init__(self):
         self.name = f'{self.__class__.__name__}'
+        self.mode = None
         # self.name = f'{self.__class__.__name__}_{dataset_cls.__name__}_{network_fn.__name__}'
 
     @property
@@ -11,31 +12,41 @@ class BaseModel(object):
         DIRNAME.mkdir(parents=True, exist_ok=True)
         return str(DIRNAME / f'{self.name}_weights.h5')
 
-
-    def fit(self, dataset, batch_size: int = 32, epochs: int = 10, augment_val: bool = True, callbacks: list = None):
-        pass
-
-    def evaluate(self, x, y, batch_size=16, verbose=False):  # pylint: disable=unused-argument
-         pass
-
-
     def loss(self):  # pylint: disable=no-self-use
         pass
 
-
-    def optimizer(self):  # pylint: disable=no-self-use
+    def optimizer(self, lr, **kwargs):  # pylint: disable=no-self-use
         pass
 
+    def scheduler(self):
+        pass
+
+    def training_step(self, batch):
+        pass
+
+    def evaluate(self, batch, device):
+        pass
+
+    def train(self):
+        pass
+
+    def eval(self):
+        pass
+
+    def to(self, device):
+        pass
+
+    def set_mode(self, mode, rank):
+        pass
 
     def metrics(self):  # pylint: disable=no-self-use
         pass
 
+    def calculate_metrics(self, batch, device):
+        pass
 
     def load_weights(self):
         self.network.load_weights(self.weights_filename)
 
-
     def save_weights(self):
         self.network.save_weights(self.weights_filename)
-
-

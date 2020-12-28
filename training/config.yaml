@@ -1,0 +1,11 @@
+net:
+    epoch: 1
+    batch_size: 2
+    device: cpu
+    ddp: 0
+    lr: 0.0001
+    label_smoothing: 0
+    use_scheduler: 0
+    calculate_bleu_step: 1
+loader:
+    num_workers: 2
