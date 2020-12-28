@@ -12,19 +12,12 @@ from torch import device
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
+
 sys.path.insert(0, os.path.abspath(Path(__file__).parents[2].resolve()))
 from training.src.datasets.opus_dataset import OpusDataset
+from training.src.utils import get_configs
 
-DEFAULT_CONFIG_FILEPATH = os.sep.join(
-    [
-        os.path.dirname(__file__),
-        '..',
-        'constants.yml',
-    ]
-)
-
-with open(DEFAULT_CONFIG_FILEPATH, 'r') as fin:
-    cfg = yaml.safe_load(fin)
+cfg = get_configs()
 
 with open(cfg["PATH_LOGGING_CONF"]) as config_fin:
     logging.config.dictConfig(yaml.safe_load(config_fin))

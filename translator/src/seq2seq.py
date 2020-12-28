@@ -25,16 +25,10 @@ from transformers.optimization import (
 
 from translator.src.base_model import BaseModel
 from training.src.metrics import calculate_bleu
+from training.src.utils import get_configs
 
-DEFAULT_CONFIG_FILEPATH = os.sep.join(
-    [
-        os.path.dirname(__file__),
-        '../../training/constants.yml',
-    ]
-)
 
-with open(DEFAULT_CONFIG_FILEPATH, 'r') as fin:
-    cfg = yaml.safe_load(fin)
+cfg = get_configs()
 
 class Seq2SeqModel(BaseModel):
     def __init__(self, tokenizer_filepath: str):

@@ -21,17 +21,10 @@ sys.path.insert(0, os.path.abspath(Path(__file__).parents[1].resolve()))
 from training.src.datasets.opus_dataset import OpusDataset
 from training.src.trainer import Trainer
 from training.src.setup_ddp import setup, cleanup
+from training.src.utils import get_configs
 from translator.src.seq2seq import Seq2SeqModel
 
-DEFAULT_CONFIG_FILEPATH = os.sep.join(
-    [
-        os.path.dirname(__file__),
-        'constants.yml',
-    ]
-)
-
-with open(DEFAULT_CONFIG_FILEPATH, 'r') as fin:
-    cfg = yaml.safe_load(fin)
+cfg = get_configs()
 
 with open(cfg["PATH_LOGGING_CONF"]) as config_fin:
     logging.config.dictConfig(yaml.safe_load(config_fin))

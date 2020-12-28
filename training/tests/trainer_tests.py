@@ -21,17 +21,9 @@ from translator.src.base_model import BaseModel
 from training.src.trainer import Trainer
 from training.src.datasets.opus_dataset import OpusDataset
 from training.src.metrics import calculate_bleu
+from training.src.utils import get_configs
 
-DEFAULT_CONFIG_FILEPATH = os.sep.join(
-    [
-        os.path.dirname(__file__),
-        '..',
-        'constants.yml',
-    ]
-)
-
-with open(DEFAULT_CONFIG_FILEPATH, 'r') as fin:
-    cfg = yaml.safe_load(fin)
+cfg = get_configs()
  
 MODEL_NAME = 'Helsinki-NLP/opus-mt-en-ru'
 MODEL_NAME2 = 't5-small'
