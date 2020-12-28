@@ -74,16 +74,16 @@ def load_datasets(args):
     else:
         logging.warning(f"Dataset {dataset} not defined yet")
 
-def run_train(rank, world_size):
+def run_train(rank, world_size, model, train, val, test, cfg):
     setup(rank, world_size)
-    trainer = Trainer(model, config, rank)
-    trainer.fit(train, val)
+    trainer = Trainer(model, cfg, rank)
+    trainer.fit(train, val, world_size)
     trainer.calculate_metrics(test)
     cleanup()
 
 def run_multigpu(fn, world_size):
     mp.spawn(fn,
-             args=(world_size,),
+             args=(world_size, model, train, val, test, cfg),
              nprocs=world_size,
              join=True)
 

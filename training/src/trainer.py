@@ -10,6 +10,7 @@ import mlflow
 import torch
 from torch import device
 from torch.utils.data import Dataset, DataLoader
+from torch.utils.data.distributed import DistributedSampler
 
 sys.path.insert(0, os.path.abspath(Path(__file__).parents[2].resolve()))
 from training.src.datasets.opus_dataset import OpusDataset
@@ -76,7 +77,34 @@ class Trainer:
 
         return t_loss, perplexity
 
-    def fit(self, train_dataset, val_dataset=None):
+    def create_loaders(self, train_dataset, val_dataset, world_size):
+        num_workers = self.config["loader"]["num_workers"]
+        batch_size = self.config["net"]["batch_size"]
+
+        tr_sampler = None
+        val_sampler = None
+
+        if self.config["net"]["ddp"]:
+            tr_sampler = DistributedSampler(
+                train_dataset, rank=self.device, num_replicas=world_size, shuffle=True
+            )
+
+            val_sampler = DistributedSampler(
+                val_dataset, rank=self.device, num_replicas=world_size, shuffle=False
+            )
+
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=tr_sampler, 
+                          num_workers=num_workers, pin_memory=True, drop_last=True)
+        if val_dataset:
+            val_loader = DataLoader(val_dataset, batch_size=batch_size, sampler=val_sampler, 
+                          num_workers=num_workers, pin_memory=True, drop_last=False)
+        else:
+            logging.warning("Validation dataset wasnt passed. Do not rely on training dataset results!")
+
+        return train_loader, val_loader
+        
+
+    def fit(self, train_dataset, val_dataset=None, world_size=None):
         logging.info(f"Start fit, train dataset length {len(train_dataset)}")
         experiment_id = mlflow.set_experiment(self.model.name)
         num_workers = self.config["loader"]["num_workers"]
@@ -84,14 +112,8 @@ class Trainer:
         epochs = self.config["net"]["epoch"]
         lr = self.config["net"]["lr"]
         logging.info(f"Parameters: batch_size: {batch_size}, epochs: {epochs}, lr: {lr}")
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, 
-                          num_workers=num_workers, pin_memory=True, drop_last=True)
-        if val_dataset:
-            val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, 
-                          num_workers=num_workers, pin_memory=True, drop_last=False)
-        else:
-            looger.warning("Validation dataset wasnt passed. Do not rely on training dataset results!")
 
+        train_loader, val_loader = self.create_loaders(train_dataset, val_dataset, world_size)
         with mlflow.start_run(experiment_id=experiment_id):
             mlflow.log_param("batch_size", batch_size)
             mlflow.log_param("lr", lr)
@@ -118,12 +140,12 @@ class Trainer:
                 self.scheduler.step()
                 
 
-    def calculate_metrics(self, dataset):
+    def calculate_metrics(self, dataset, world_size=None):
         logging.info(f"Start calculating {self.model.metrics()[0]} metric")
         num_workers = self.config["loader"]["num_workers"]
         batch_size = self.config["net"]["batch_size"]
-        loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, 
-                          num_workers=num_workers, pin_memory=True, drop_last=False)
+
+        _, loader = self.create_loaders(dataset, dataset, world_size)
 
         metric = 0
         samples = 0
